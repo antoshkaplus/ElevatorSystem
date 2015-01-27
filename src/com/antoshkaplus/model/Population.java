@@ -6,7 +6,7 @@ import java.util.*;
 /**
  * Created by antoshkaplus on 1/18/15.
  */
-public class Population extends Thread {
+public class Population implements Elevator.Listener {
     private Building building;
 
     // ids of users that are free and floor
@@ -28,6 +28,10 @@ public class Population extends Thread {
 
     public Population(Building building, int count, int requestFrequency) {
         this.building = building;
+        for (BuildingElevator bel : building.getElevators()) {
+            bel.addListener(this);
+        }
+
         this.idleUsersCount = count;
         for (int i = 0; i < count; ++i) {
             // all start from 0 floor
@@ -49,10 +53,9 @@ public class Population extends Thread {
         this.requestFrequency = requestFrequency;
     }
 
-    @Override
     public void run() {
         while (true) {
-            int time = random.nextInt(2*requestFrequency);
+            int time = random.nextInt(2 * requestFrequency);
             try {
                 synchronized (this) {
                     wait(time);
@@ -62,55 +65,18 @@ public class Population extends Thread {
             if (idleUsersCount == 0) continue;
             int i = random.nextInt(idleUsersCount);
             IdleUser u = idleUsers.get(i);
-            Collections.swap(idleUsers, i, idleUsersCount-1);
-            idleUsers.remove(idleUsersCount-1);
+            Collections.swap(idleUsers, i, idleUsersCount - 1);
+            idleUsers.remove(idleUsersCount - 1);
             --idleUsersCount;
             --idleUsersPerFloor[u.floor];
             // finding target floor
             int t;
-            while ((t = random.nextInt(building.getFloorCount())) == u.floor);
+            while ((t = random.nextInt(building.getFloorCount())) == u.floor) ;
             Direction d = Direction.get(u.floor, t);
             waitingUsers.get(u.floor).get(d).add(new WaitingUser(u.id, t));
             ++waitingUsersCount;
-            building.onElevatorRequest(new ElevatorRequest(u.floor, d));
+            building.onRequest(new ElevatorRequest(u.floor, d));
         }
-    }
-
-    // probably should be a thread..
-
-    // is going to need some sort of event
-
-
-    // should be able to get floor from elevator some how ???
-    void onTransfer(int elevatorId, Direction elevatorDirection) {
-        Elevator e = building.getElevator(elevatorId);
-        int floor = e.getFloor();
-        // getting out some users
-        ArrayList<TravelingUser> ts = travelingUsers.get(e.getElevatorId());
-        for (int i = 0; i < ts.size();) {
-            if (ts.get(i).targetFloor == floor) {
-                ++idleUsersCount;
-                ++idleUsersPerFloor[floor];
-                idleUsers.add(new IdleUser(ts.get(i).id, floor));
-
-                Collections.swap(ts, i, ts.size() - 1);
-                ts.remove(ts.size() - 1);
-                --travelingUsersCount;
-            } else {
-                ++i;
-            }
-        }
-
-        // getting in some users
-        ArrayList<WaitingUser> ws = waitingUsers.get(floor).get(elevatorDirection);
-        for (WaitingUser w : ws) {
-            ts.add(new TravelingUser(w.id, w.targetFloor));
-            e.onFloorRequest(w.targetFloor);
-        }
-        travelingUsersCount += ws.size();
-        waitingUsersCount -= ws.size();
-        ws.clear();
-
     }
 
     int getWaitingUserCount(int floor, Direction direction) {
@@ -137,6 +103,41 @@ public class Population extends Thread {
         return travelingUsersCount;
     }
 
+    @Override
+    public void onStateStart(Elevator elevator, Elevator.State state) {
+        BuildingElevator bel = (BuildingElevator)elevator;
+        if (!bel.getControls().isFunctional()) return;
+        if (state != Elevator.State.PASSENGER_TRANSFER) return;
+
+        int floor = bel.getFloor();
+        ArrayList<TravelingUser> ts = travelingUsers.get(bel.getElevatorId());
+        for (int i = 0; i < ts.size();) {
+            if (ts.get(i).targetFloor == floor) {
+                ++idleUsersCount;
+                ++idleUsersPerFloor[floor];
+                idleUsers.add(new IdleUser(ts.get(i).id, floor));
+
+                Collections.swap(ts, i, ts.size() - 1);
+                ts.remove(ts.size() - 1);
+                --travelingUsersCount;
+            } else {
+                ++i;
+            }
+        }
+
+        // getting in some users
+        ArrayList<WaitingUser> ws = waitingUsers.get(floor).get(bel.getControls().getDirection());
+        for (WaitingUser w : ws) {
+            ts.add(new TravelingUser(w.id, w.targetFloor));
+            bel.PressButton(w.targetFloor);
+        }
+        travelingUsersCount += ws.size();
+        waitingUsersCount -= ws.size();
+        ws.clear();
+    }
+
+    @Override
+    public void onStateFinish(Elevator elevator, Elevator.State state) {}
 
     class User {
         User(int id) {
@@ -168,5 +169,4 @@ public class Population extends Thread {
         }
         int targetFloor;
     }
-
 }

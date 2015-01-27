@@ -11,83 +11,52 @@ import java.util.concurrent.atomic.AtomicReference;
  * Created by antoshkaplus on 10/16/14.
  */
 // will assume that elevator moves with constant speed
-public class Elevator extends Thread {
+public class Elevator {
     private static AtomicInteger lastId = new AtomicInteger(0);
-
-    private List<Listener> listeners = new ArrayList<Listener>();
-
-    private SortedSet<Integer> highlightedButtons = Collections.synchronizedSortedSet(new TreeSet<Integer>());
-
     private final int id = lastId.getAndIncrement();
 
+    private List<Listener> listeners = new ArrayList<Listener>();
     // variables change only inside this thread class
     private double currentFloorLocation = 0;
     private double doorOpenPortion = 0;
-
     // how many floors per second
     private final double elevatorSpeed = 0.2;
     // open portion per second
     private final double doorSpeed = 0.2;
-
     // will be used as getter only
     private EnumMap<State, StateInterface> states = new EnumMap<State, StateInterface>(State.class);
     private AtomicReference<StateInterface> currentState = new AtomicReference<StateInterface>();
+
 
     public Elevator() {
         states.put(State.OPENING_DOORS, new OpeningDoors());
         states.put(State.CLOSING_DOORS, new ClosingDoors());
         states.put(State.IDLE, new Idle());
-        // will take this state when was IDLE and
         states.put(State.MOVING_TO_DESTINATION, new MovingToDestination());
         states.put(State.PASSENGER_TRANSFER, new PassengerTransfer());
-
         setState(State.IDLE);
     }
 
     public void addListener(Listener listener) {
         listeners.add(listener);
     }
-
     public void removeListener(Listener listener) {
         listeners.remove(listener);
     }
-
 
     public int getElevatorId() {
         return id;
     }
 
-    @Override
     public void run() {
         while (true) {
-            //if (currentState.get() instanceof MovingToDestination)System.out.println("hi! " + currentFloorLocation);
             currentState.get().run();
         }
     }
 
-    SortedSet<Integer> getHighlightedButtons() {
-        return highlightedButtons;
-    }
-
-    public void highlightButton(int floor) {
-        highlightedButtons.add(floor);
-    }
-
-    public void cancelHighlightButton(int floor) {
-        highlightedButtons.remove(floor);
-    }
-
-    
-
-
-
-
-
-
     public double getFloorLocation() {
         return currentFloorLocation;
     }
-
     public int getFloor() {
         return (int)Math.round(currentFloorLocation);
     }
@@ -95,7 +64,6 @@ public class Elevator extends Thread {
     public double getDoorOpenPortion() {
         return doorOpenPortion;
     }
-
     // returns milliseconds
     public long getArrivingTime(int floor) {
         return 0;
@@ -104,7 +72,6 @@ public class Elevator extends Thread {
     // should be called after elevator calls controller.onIdle()
     // or can be called while moving to particular target
     public synchronized void setDestination(int floor) {
-
         System.out.println("coming to " + floor);
         MovingToDestination s = (MovingToDestination)states.get(State.MOVING_TO_DESTINATION);
 
@@ -112,29 +79,26 @@ public class Elevator extends Thread {
             setState(State.MOVING_TO_DESTINATION);
 
     }
+
     public int getDestination() {
         MovingToDestination s = (MovingToDestination)states.get(State.MOVING_TO_DESTINATION);
         return s.getDestination();
     }
 
-
     public synchronized void setState(State state) {
-        StateInterface newState = states.get(state);
-        if (newState == currentState) return;
-        // can actually and state start state here
-        notifyOnStateFinish(currentState);
-        currentState = state;
-        currentState.set(states.get(state));
-        notifyOnStateStart(currentState);
-        currentState.get().init();
+//        StateInterface newState = states.get(state);
+//        if (newState == currentState) return;
+//        // can actually and state start state here
+//        notifyOnStateFinish(currentState);
+//        currentState = state;
+//        currentState.set(states.get(state));
+//        notifyOnStateStart(currentState);
+//        currentState.get().init();
     }
 
-    public boolean isMovingToDestination() {
-        return currentState.get() instanceof MovingToDestination;
-    }
 
-    public boolean isIdle() {
-        return currentState.get() instanceof Idle;
+    public State getState() {
+        return State.IDLE;
     }
 
     public boolean isFirstCloser(int floor_0, int floor_1) {
@@ -146,7 +110,6 @@ public class Elevator extends Thread {
         public void init();
         public void run();
     }
-
 
     private class Idle implements  StateInterface {
         @Override
@@ -260,10 +223,6 @@ public class Elevator extends Thread {
         }
     }
 
-    public void onFloorRequest(int floor) {
-        notifyOnButtonPress(floor);
-    }
-
     private void notifyOnStateStart(State state) {
         for (Listener listener : listeners) {
             listener.onStateStart(this, state);
@@ -276,16 +235,9 @@ public class Elevator extends Thread {
         }
     }
 
-    private void notifyOnButtonPress(int floor) {
-        for (Listener listener : listeners) {
-            listener.onButtonPress(this, floor);
-        }
-    }
-
     public interface Listener {
         public void onStateStart(Elevator elevator, State state);
         public void onStateFinish(Elevator elevator, State state);
-        public void onButtonPress(Elevator elevator, int floor);
     }
 
     /**

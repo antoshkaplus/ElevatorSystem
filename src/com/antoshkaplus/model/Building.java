@@ -4,52 +4,46 @@ import java.util.ArrayList;
 
 /**
  * Created by antoshkaplus on 10/17/14.
+ *
+ * May have many ElevatorSystems and control which one gets request
  */
 public class Building {
-    private ArrayList<Elevator> elevators = new ArrayList<Elevator>();
+    private ArrayList<BuildingElevator> elevators = new ArrayList<BuildingElevator>();
     private int floorCount;
     private ElevatorSystem elevatorSystem;
 
     public Building(int floorCount, int elevatorCount) {
         this.floorCount = floorCount;
         for (int i = 0; i < elevatorCount; ++i) {
-            Elevator elevator = new Elevator();
-            elevator.start();
+            BuildingElevator elevator = new BuildingElevator();
+            Thread thread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    elevator.run();
+                }
+            });
+            thread.start();
             elevators.add(elevator);
         }
-        elevatorSystem = new ElevatorSystem(floorCount);
-        for (Elevator elevator : getElevators()) {
+        elevatorSystem = new ElevatorSystem();
+        for (BuildingElevator elevator : getElevators()) {
             elevatorSystem.addElevator(elevator);
         }
     }
 
-    public Iterable<Elevator> getElevators() {
+    public Iterable<BuildingElevator> getElevators() {
         return elevators;
     }
 
-    public Elevator getElevator(int id)  {
-        for (Elevator e : elevators) {
-            if (e.getId() == id) {
-                return e;
-            }
-        }
-        return null;
-    }
-
-    public boolean isElevatorFunctional(Elevator elevator) {
-        return true;
-    }
-
-    public Direction getElevatorDirection(Elevator elevator) {
-        return elevatorSystem.
-    }
-
-    public void onElevatorRequest(ElevatorRequest request) {
+    public void onRequest(ElevatorRequest request) {
         elevatorSystem.addRequest(request);
     }
 
-    public boolean isElevatorRequested(ElevatorRequest request) {
-        return elevatorSystem.hasRequest(request);
+    // should some method that needs listener like onRequest
+
+    public void onRequestSatisfied(ElevatorRequest request) {
+        // notify visualizer listener ???
+        // cancel highlighted floor panels
     }
 
     public int getElevatorCount() {

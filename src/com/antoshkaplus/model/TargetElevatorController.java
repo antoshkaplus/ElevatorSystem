@@ -5,9 +5,14 @@ package com.antoshkaplus.model;
  */
 public class TargetElevatorController extends ElevatorController {
 
-    public TargetElevatorController(Elevator elevator, int destinationFloor) {
+    private ElevatorRequest request;
+
+    public TargetElevatorController(BuildingElevator elevator, ElevatorRequest request) {
         super(elevator);
-        elevator.setDestination(destinationFloor);
+        this.request = request;
+        elevator.setDestination(request.floor);
+        // or maybe some other
+        elevator.setState(Elevator.State.MOVING_TO_DESTINATION);
     }
 
     @Override
@@ -15,10 +20,11 @@ public class TargetElevatorController extends ElevatorController {
         if (state == Elevator.State.MOVING_TO_DESTINATION) {
             elevator.setState(Elevator.State.OPENING_DOORS);
         } else if (state == Elevator.State.OPENING_DOORS) {
-            if (getListener() != null) {
-                elevator.removeListener(this);
-                getListener().onFinish(this);
-            }
+            notifyOnFinish();
         }
+    }
+
+    ElevatorRequest getRequest() {
+        return request;
     }
 }

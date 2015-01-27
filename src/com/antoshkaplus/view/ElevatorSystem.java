@@ -57,18 +57,18 @@ public class ElevatorSystem extends Pane {
         int k = 0;
         final Group elevatorTargets = new Group();
         for (com.antoshkaplus.model.Elevator elevator : building.getElevators()) {
-            Elevator elevatorView = new Elevator();
-            elevatorView.setTranslateX(floorNumberWidth + k * floorWidth + floorWidth/2 - 2*floorWidth/5/2);
-            elevatorView.resize(2 * floorWidth / 5, floorHeight / 2);
-            getChildren().add(elevatorView);
-            elevatorViews.put(elevator.getElevatorId(), elevatorView);
-
-            Label label = new Label();
-            label.setTranslateX(floorNumberWidth + (k)*floorWidth);
-            label.setTranslateY(0);
-            this.elevatorTargetViews.put(elevator.getElevatorId(), label);
-            elevatorTargets.getChildren().add(label);
-            k++;
+//            Elevator elevatorView = new Elevator();
+//            elevatorView.setTranslateX(floorNumberWidth + k * floorWidth + floorWidth/2 - 2*floorWidth/5/2);
+//            elevatorView.resize(2 * floorWidth / 5, floorHeight / 2);
+//            getChildren().add(elevatorView);
+//            elevatorViews.put(elevator.getElevatorId(), elevatorView);
+//
+//            Label label = new Label();
+//            label.setTranslateX(floorNumberWidth + (k)*floorWidth);
+//            label.setTranslateY(0);
+//            this.elevatorTargetViews.put(elevator.getElevatorId(), label);
+//            elevatorTargets.getChildren().add(label);
+//            k++;
         }
         getChildren().add(elevatorTargets);
 
@@ -114,7 +114,7 @@ public class ElevatorSystem extends Pane {
                 // update floor panels
                 for (com.antoshkaplus.model.Elevator elevator : building.getElevators()) {
                     Elevator elevatorView = elevatorViews.get(elevator.getElevatorId());
-                    elevatorView.setOpenPortion(elevator.getDoorOpenPortion());
+                   // elevatorView.setOpenPortion(elevator.getDoorOpenPortion());
                     double floor = elevator.getFloorLocation();
                     elevatorView.setTranslateY((floorCount - 1 - floor) * floorHeight + floorHeight / 2 - floorHeight / 4 + titleHeight);
 
@@ -123,18 +123,18 @@ public class ElevatorSystem extends Pane {
 
                 List<FloorPanel> floorPanels = ElevatorSystem.this.floorPanels;
                 for (int i = 0; i < floorCount; ++i) {
-                    if (building.isElevatorRequested(new ElevatorRequest(i, Direction.UP))) {
-                        if (i == floorCount -1) throw new RuntimeException("LOH UP");
-                        floorPanels.get(i).setHighlightArrow(FloorPanel.ArrowType.UP, true);
-                    } else {
-                        if (i != floorCount -1) floorPanels.get(i).setHighlightArrow(FloorPanel.ArrowType.UP, false);
-                    }
-                    if (building.isElevatorRequested(new ElevatorRequest(i, Direction.DOWN))) {
-                        if (i == 0) throw new RuntimeException("LOH DOWN");
-                        floorPanels.get(i).setHighlightArrow(FloorPanel.ArrowType.DOWN, true);
-                    } else {
-                        if (i != 0) floorPanels.get(i).setHighlightArrow(FloorPanel.ArrowType.DOWN, false);
-                    }
+//                    if (building.isElevatorRequested(new ElevatorRequest(i, Direction.UP))) {
+//                        if (i == floorCount -1) throw new RuntimeException("LOH UP");
+//                        floorPanels.get(i).setHighlightArrow(FloorPanel.ArrowType.UP, true);
+//                    } else {
+//                        if (i != floorCount -1) floorPanels.get(i).setHighlightArrow(FloorPanel.ArrowType.UP, false);
+//                    }
+//                    if (building.isElevatorRequested(new ElevatorRequest(i, Direction.DOWN))) {
+//                        if (i == 0) throw new RuntimeException("LOH DOWN");
+//                        floorPanels.get(i).setHighlightArrow(FloorPanel.ArrowType.DOWN, true);
+//                    } else {
+//                        if (i != 0) floorPanels.get(i).setHighlightArrow(FloorPanel.ArrowType.DOWN, false);
+//                    }
                 }
 
             }

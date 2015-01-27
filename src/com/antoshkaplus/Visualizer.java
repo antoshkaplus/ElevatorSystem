@@ -19,7 +19,12 @@ public class Visualizer extends Application {
         primaryStage.setTitle("Elevator System Visualization");
         Building building = new Building(6, 4);
         Population population = new Population(building, 10, 10000);
-        population.start();
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                population.run();
+            }
+        });
         com.antoshkaplus.view.ElevatorSystem elevatorSystem = new com.antoshkaplus.view.ElevatorSystem(1000, 700, building);
         primaryStage.setScene(new Scene(elevatorSystem, 1000, 700));
         primaryStage.show();
