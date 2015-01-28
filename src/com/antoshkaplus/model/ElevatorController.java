@@ -5,13 +5,13 @@ package com.antoshkaplus.model;
  *
  * Task is to make elevator Idle from any state
  */
-public class ElevatorController implements Elevator.Listener {
+public class ElevatorController implements Elevator.StateListener {
     private Listener listener = null;
     protected BuildingElevator elevator;
 
     public ElevatorController(BuildingElevator elevator) {
         this.elevator = elevator;
-        this.elevator.addListener(this);
+        this.elevator.addStateListener(this);
     }
 
     @Override
@@ -29,7 +29,7 @@ public class ElevatorController implements Elevator.Listener {
     }
 
     protected void notifyOnFinish() {
-        this.elevator.removeListener(this);
+        this.elevator.removeStateListener(this);
         if (listener != null) listener.onFinish(this);
     }
 

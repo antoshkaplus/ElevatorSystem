@@ -10,12 +10,19 @@ import javafx.scene.shape.Rectangle;
  */
 public class Arrow extends Polygon {
 
+    Color highlightColor = Color.YELLOW;
+    Color normalColor = Color.LIGHTYELLOW;
+
     public Arrow(double width, double height, Type type) {
         // UP arrow
         super(width/2, 0, width, height, 0, height);
         if (type == Type.DOWN) setRotate(180);
         setStroke(Color.BLACK);
         setFill(Color.BURLYWOOD);
+    }
+
+    public void setHighlight(boolean highlight) {
+        setFill(highlight ? highlightColor : normalColor);
     }
 
     public enum Type {

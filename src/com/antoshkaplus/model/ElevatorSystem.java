@@ -15,6 +15,7 @@ public class ElevatorSystem implements  ElevatorController.Listener {
     private List<TargetElevatorController> targetElevatorControllers = Collections.synchronizedList(new ArrayList<>());
     private List<BuildingElevator> idleElevators = Collections.synchronizedList(new ArrayList<>());
 
+//    private List<Listener> listeners = new ArrayList<>();
 
     public ElevatorSystem() {
         requests = new EnumMap<Direction, List<Integer>>(Direction.class);
@@ -60,4 +61,21 @@ public class ElevatorSystem implements  ElevatorController.Listener {
         idleElevators.remove(i);
         targetElevatorControllers.add(new TargetElevatorController(el, request));
     }
+//
+//    public void addStateListener(Listener listener) {
+//        listeners.add(listener);
+//    }
+//
+//    public void removeStateListener(Listener listener) {
+//        listeners.remove(listener);
+//    }
+//
+//    private void notifyListeners(ElevatorRequest request) {
+//        listeners.forEach(lis -> lis.onRequestSatisfied(request));
+//    }
+//
+//
+//    public interface Listener {
+//        void onRequestSatisfied(ElevatorRequest request);
+//    }
 }

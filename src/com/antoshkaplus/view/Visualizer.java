@@ -1,6 +1,7 @@
 package com.antoshkaplus.view;
 
 import com.antoshkaplus.model.*;
+import javafx.animation.AnimationTimer;
 import javafx.geometry.Point2D;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
@@ -12,12 +13,15 @@ import java.util.*;
 /**
  * Created by antoshkaplus on 1/25/15.
  */
-public class Test extends GridPane implements BuildingElevator.ControlsListener {
+public class Visualizer extends GridPane implements BuildingElevator.ControlsListener, com.antoshkaplus.model.Elevator.StateListener {
+
+    private static final int numberWidth = 3;
 
     private Random random = new Random();
     private Building building;
     private Population population;
     private Map<Integer, Elevator> elevatorViews = new TreeMap<>();
+
     private EnumMap<Direction, Label[]> waitingLabels;
     private Label[] workingLabels;
     private static final Point2D arrowSize = new Point2D(20, 20);
@@ -25,7 +29,7 @@ public class Test extends GridPane implements BuildingElevator.ControlsListener 
     private Shaft[] shafts;
 
 
-    public Test(Building building, Population population) {
+    public Visualizer(Building building, Population population) {
         super();
         int floorCount = building.getFloorCount();
         int elevatorCount = building.getElevatorCount();
@@ -33,10 +37,16 @@ public class Test extends GridPane implements BuildingElevator.ControlsListener 
         this.population = population;
 
         for (BuildingElevator b : building.getElevators()) {
+            b.addStateListener(this);
             elevatorViews.put(b.getElevatorId(), new Elevator());
             b.addControlsListener(this);
         }
 
+        // because order of labels in array should be reversed comparing
+        // to adding order we can reverse arrays or compute index of array right or
+        // reverse array of labels afterwards
+
+        waitingLabels = new EnumMap<>(Direction.class);
         Label[] waiting;
         waiting = new Label[building.getFloorCount()];
         waitingLabels.put(Direction.UP, waiting);
@@ -52,12 +62,12 @@ public class Test extends GridPane implements BuildingElevator.ControlsListener 
             VBox.setVgrow(down, Priority.ALWAYS);
             up.setMaxHeight(Double.MAX_VALUE);
             down.setMaxHeight(Double.MAX_VALUE);
-            add(v, elevatorCount + 1, i);
+            add(v, elevatorCount + 1, floorCount - 1 - i);
         }
 
         workingLabels = new Label[floorCount];
         for (int i = 0; i < floorCount; ++i) {
-            add(workingLabels[i] = new Label(), elevatorCount + 2, i);
+            add(workingLabels[i] = new Label(), elevatorCount + 2, floorCount - 1 - i);
         }
 
         travelingLabels = new Label[elevatorCount];
@@ -66,38 +76,46 @@ public class Test extends GridPane implements BuildingElevator.ControlsListener 
         }
 
         shafts = new Shaft[elevatorCount];
+        Iterator<Elevator> els = elevatorViews.values().iterator();
         for (int i = 0; i < elevatorCount; ++i) {
             shafts[i] = new Shaft(floorCount);
-            
-            Elevator e = new Elevator();
-            s.getChildren().add(e);
-            s.setStyle("-fx-background-color: yellow;");
-            add(s, c, 0, 1, floorCount);
+            shafts[i].getChildren().add(els.next());
+            add(shafts[i], i+1, 0, 1, floorCount);
         }
 
-
-        setGridLinesVisible(true);
+        // floor indexes
         for (int i = 0; i < floorCount; ++i) {
-            // floor indexes
             Label a = new Label(Integer.toString(i + 1));
             a.setStyle("-fx-background-color: blue; -fx-alignment: center;");
             add(a, 0, i);
+        }
+
+        // expanding floors to take all available space
+        for (int i = 0; i < floorCount; ++i) {
             RowConstraints c = new RowConstraints();
             c.setVgrow(Priority.ALWAYS);
             c.setFillHeight(true);
             getRowConstraints().add(c);
-            // number of people on floor
-
-        }
-        for (int c = 0; c < elevatorCount+3; ++c) {
-            Label a = new Label("0");
-            add(a, c, floorCount);
-            ColumnConstraints cc = new ColumnConstraints();
-            if (c != 0 && c < elevatorCount + 3 - 2) cc.setHgrow(Priority.ALWAYS);
-            getColumnConstraints().add(c, cc);
         }
 
-        setStyle("-fx-border-color: black;");
+        // expanding shafts
+        getColumnConstraints().add(new ColumnConstraints());
+        for (int i = 0; i < elevatorCount; ++i) {
+            ColumnConstraints c = new ColumnConstraints();
+            c.setHgrow(Priority.ALWAYS);
+            getColumnConstraints().add(c);
+        }
+
+
+        setGridLinesVisible(true);
+
+        new AnimationTimer() {
+            @Override
+            public void handle(long now) {
+                Visualizer.this.updateElevators();
+                Visualizer.this.updatePopulation();
+            }
+        }.start();
     }
 
     @Override
@@ -106,8 +124,12 @@ public class Test extends GridPane implements BuildingElevator.ControlsListener 
     }
 
     @Override
-    public void onHighlightButtonChange(BuildingElevator elevator, int floor) {
+    public void onHighlightButtonChange(BuildingElevator elevator, int floor, boolean highlight) {
 
+    }
+
+    public static String padNumberLeft(int number) {
+        return String.format("%3d", number);
     }
 
     private void updateElevators() {
@@ -119,7 +141,28 @@ public class Test extends GridPane implements BuildingElevator.ControlsListener 
     }
 
     private void updatePopulation() {
-
+        for (int i = 0; i < building.getFloorCount(); ++i) {
+            workingLabels[i].setText(padNumberLeft(population.getIdleUserCount(i)));
+            for (Map.Entry<Direction, Label[]> entry : waitingLabels.entrySet()) {
+                waitingLabels.get(entry.getKey())[i].setText(padNumberLeft(population.getWaitingUserCount(i, entry.getKey())));
+            }
+        }
     }
 
+    @Override
+    public void onStateStart(com.antoshkaplus.model.Elevator elevator, com.antoshkaplus.model.Elevator.State state) {
+        if (state != com.antoshkaplus.model.Elevator.State.PASSENGER_TRANSFER) {
+            return;
+        }
+        BuildingElevator b = (BuildingElevator)elevator;
+        Direction dir = b.getControls().getDirection();
+
+        Arrow a = (Arrow)waitingLabels.get(dir)[b.getFloor()].getGraphic();
+        a.setHighlight(false);
+    }
+
+    @Override
+    public void onStateFinish(com.antoshkaplus.model.Elevator elevator, com.antoshkaplus.model.Elevator.State state) {
+
+    }
 }

@@ -11,7 +11,7 @@ import javafx.stage.Stage;
 /**
  * Created by antoshkaplus on 10/16/14.
  */
-public class Visualizer extends Application {
+public class Simulation extends Application {
 
     // create some button to change building configuration
     @Override
@@ -25,7 +25,7 @@ public class Visualizer extends Application {
                 population.run();
             }
         });
-        com.antoshkaplus.view.ElevatorSystem elevatorSystem = new com.antoshkaplus.view.ElevatorSystem(1000, 700, building);
+        Visualizer elevatorSystem = new Visualizer(building, population);
         primaryStage.setScene(new Scene(elevatorSystem, 1000, 700));
         primaryStage.show();
     }

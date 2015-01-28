@@ -2,7 +2,6 @@ package com.antoshkaplus.model;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 
 // need to create multiple events
@@ -15,7 +14,7 @@ public class Elevator {
     private static AtomicInteger lastId = new AtomicInteger(0);
     private final int id = lastId.getAndIncrement();
 
-    private List<Listener> listeners = new ArrayList<Listener>();
+    private List<StateListener> listeners = new ArrayList<StateListener>();
     // variables change only inside this thread class
     private double currentFloorLocation = 0;
     private double doorOpenPortion = 0;
@@ -25,7 +24,7 @@ public class Elevator {
     private final double doorSpeed = 0.2;
     // will be used as getter only
     private EnumMap<State, StateInterface> states = new EnumMap<State, StateInterface>(State.class);
-    private AtomicReference<StateInterface> currentState = new AtomicReference<StateInterface>();
+    private State currentState = State.IDLE;
 
 
     public Elevator() {
@@ -37,10 +36,10 @@ public class Elevator {
         setState(State.IDLE);
     }
 
-    public void addListener(Listener listener) {
+    public void addStateListener(StateListener listener) {
         listeners.add(listener);
     }
-    public void removeListener(Listener listener) {
+    public void removeStateListener(StateListener listener) {
         listeners.remove(listener);
     }
 
@@ -50,7 +49,7 @@ public class Elevator {
 
     public void run() {
         while (true) {
-            currentState.get().run();
+            states.get(currentState).run();
         }
     }
 
@@ -86,19 +85,10 @@ public class Elevator {
     }
 
     public synchronized void setState(State state) {
-//        StateInterface newState = states.get(state);
-//        if (newState == currentState) return;
-//        // can actually and state start state here
-//        notifyOnStateFinish(currentState);
-//        currentState = state;
-//        currentState.set(states.get(state));
-//        notifyOnStateStart(currentState);
-//        currentState.get().init();
-    }
-
-
-    public State getState() {
-        return State.IDLE;
+        notifyOnStateFinish(currentState);
+        currentState = state;
+        states.get(state).init();
+        notifyOnStateStart(state);
     }
 
     public boolean isFirstCloser(int floor_0, int floor_1) {
@@ -224,18 +214,18 @@ public class Elevator {
     }
 
     private void notifyOnStateStart(State state) {
-        for (Listener listener : listeners) {
+        for (StateListener listener : listeners) {
             listener.onStateStart(this, state);
         }
     }
 
     private void notifyOnStateFinish(State state) {
-        for (Listener listener : listeners) {
+        for (StateListener listener : listeners) {
             listener.onStateFinish(this, state);
         }
     }
 
-    public interface Listener {
+    public interface StateListener {
         public void onStateStart(Elevator elevator, State state);
         public void onStateFinish(Elevator elevator, State state);
     }

@@ -1,12 +1,13 @@
 package com.antoshkaplus.model;
 
-import javax.jws.soap.SOAPBinding;
 import java.util.*;
 
 /**
  * Created by antoshkaplus on 1/18/15.
+ *
+ * should push events that create new requests
  */
-public class Population implements Elevator.Listener {
+public class Population implements Elevator.StateListener {
     private Building building;
 
     // ids of users that are free and floor
@@ -29,7 +30,7 @@ public class Population implements Elevator.Listener {
     public Population(Building building, int count, int requestFrequency) {
         this.building = building;
         for (BuildingElevator bel : building.getElevators()) {
-            bel.addListener(this);
+            bel.addStateListener(this);
         }
 
         this.idleUsersCount = count;
@@ -79,27 +80,27 @@ public class Population implements Elevator.Listener {
         }
     }
 
-    int getWaitingUserCount(int floor, Direction direction) {
+    public int getWaitingUserCount(int floor, Direction direction) {
         return waitingUsers.get(floor).get(direction).size();
     }
 
-    int getWaitingUserCount() {
+    public int getWaitingUserCount() {
         return waitingUsersCount;
     }
 
-    int getIdleUserCount(int floor) {
+    public int getIdleUserCount(int floor) {
         return idleUsersPerFloor[floor];
     }
 
-    int getIdleUserCount() {
+    public int getIdleUserCount() {
         return idleUsersCount;
     }
 
-    int getTravelingUserCount(int elevatorId) {
+    public int getTravelingUserCount(int elevatorId) {
         return travelingUsers.get(elevatorId).size();
     }
 
-    int getTravelingUserCount() {
+    public int getTravelingUserCount() {
         return travelingUsersCount;
     }
 

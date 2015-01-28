@@ -51,7 +51,7 @@ public class BuildingElevator extends Elevator {
 
     public interface ControlsListener {
         void onDirectionChange(BuildingElevator elevator);
-        void onHighlightButtonChange(BuildingElevator elevator, int floor);
+        void onHighlightButtonChange(BuildingElevator elevator, int floor, boolean highlight);
     }
 
     private class ControlsListenerAdapter implements ElevatorControls.Listener {
@@ -74,7 +74,7 @@ public class BuildingElevator extends Elevator {
 
         @Override
         public void onHighlightButtonChange(ElevatorControls controls, int floor) {
-            this.listener.onHighlightButtonChange(BuildingElevator.this, floor);
+            this.listener.onHighlightButtonChange(BuildingElevator.this, floor, controls.isHighlightedButton(floor));
         }
 
         void unbind() {
