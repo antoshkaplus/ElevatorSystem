@@ -28,7 +28,9 @@ public class ElevatorSystem implements  ElevatorController.Listener {
         if (controller instanceof TargetElevatorController) {
             TargetElevatorController tcl = (TargetElevatorController)controller;
             targetElevatorControllers.remove(controller);
-            servingElevatorControllers.add(new ServingElevatorController(controller.getElevator(), tcl.getRequest().direction));
+            ServingElevatorController c = new ServingElevatorController(controller.getElevator(), tcl.getRequest().direction);
+            c.setListener(this);
+            servingElevatorControllers.add(c);
         } else if (controller instanceof ServingElevatorController) {
             servingElevatorControllers.remove(controller);
             idleElevators.add(controller.getElevator());
@@ -59,8 +61,13 @@ public class ElevatorSystem implements  ElevatorController.Listener {
         int i = idleElevators.size() - 1;
         BuildingElevator el = idleElevators.get(i);
         idleElevators.remove(i);
-        targetElevatorControllers.add(new TargetElevatorController(el, request));
+        TargetElevatorController controller = new TargetElevatorController(el, request);
+        controller.setListener(this);
+        targetElevatorControllers.add(controller);
     }
+
+
+
 //
 //    public void addStateListener(Listener listener) {
 //        listeners.add(listener);

@@ -11,6 +11,7 @@ public class Building {
     private ArrayList<BuildingElevator> elevators = new ArrayList<BuildingElevator>();
     private int floorCount;
     private ElevatorSystem elevatorSystem;
+    private ArrayList<Listener> listeners = new ArrayList<>();
 
     public Building(int floorCount, int elevatorCount) {
         this.floorCount = floorCount;
@@ -37,6 +38,7 @@ public class Building {
 
     public void onRequest(ElevatorRequest request) {
         elevatorSystem.addRequest(request);
+        listeners.forEach(lis -> lis.onRequest(this, request));
     }
 
     // should some method that needs listener like onRequest
@@ -52,5 +54,19 @@ public class Building {
 
     public int getFloorCount() {
         return floorCount;
+    }
+
+
+    public void addListener(Listener listener) {
+        listeners.add(listener);
+    }
+
+    public void removeListener(Listener listener) {
+        listeners.remove(listener);
+    }
+
+
+    public interface Listener {
+        void onRequest(Building building, ElevatorRequest request);
     }
 }

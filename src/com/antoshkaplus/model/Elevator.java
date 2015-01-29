@@ -14,6 +14,8 @@ public class Elevator {
     private static AtomicInteger lastId = new AtomicInteger(0);
     private final int id = lastId.getAndIncrement();
 
+    private int destinationFloor;
+
     private List<StateListener> listeners = new ArrayList<StateListener>();
     // variables change only inside this thread class
     private double currentFloorLocation = 0;
@@ -71,24 +73,16 @@ public class Elevator {
     // should be called after elevator calls controller.onIdle()
     // or can be called while moving to particular target
     public synchronized void setDestination(int floor) {
-        System.out.println("coming to " + floor);
-        MovingToDestination s = (MovingToDestination)states.get(State.MOVING_TO_DESTINATION);
-
-            s.setDestination(floor);
-            setState(State.MOVING_TO_DESTINATION);
-
+        destinationFloor = floor;
     }
 
     public int getDestination() {
-        MovingToDestination s = (MovingToDestination)states.get(State.MOVING_TO_DESTINATION);
-        return s.getDestination();
+        return destinationFloor;
     }
 
     public synchronized void setState(State state) {
-        notifyOnStateFinish(currentState);
         currentState = state;
         states.get(state).init();
-        notifyOnStateStart(state);
     }
 
     public boolean isFirstCloser(int floor_0, int floor_1) {
@@ -176,24 +170,16 @@ public class Elevator {
     private class MovingToDestination implements StateInterface {
         private long startMoveToDestinationTime;
         private double startFloorLocation;
+        // need local destination floor in case if user would like
+        // to change it inside outer object
         private int destinationFloor;
 
         @Override
         public void init() {
-//            startMoveToDestinationTime = System.currentTimeMillis();
-//            startFloorLocation = currentFloorLocation;
-            notifyOnStateStart(State.MOVING_TO_DESTINATION);
-            System.out.println("doing it");
-        }
-
-        void setDestination(int destinationFloor) {
             startMoveToDestinationTime = System.currentTimeMillis();
             startFloorLocation = currentFloorLocation;
-            this.destinationFloor = destinationFloor;
-        }
-
-        public int getDestination() {
-            return destinationFloor;
+            destinationFloor = Elevator.this.destinationFloor;
+            notifyOnStateStart(State.MOVING_TO_DESTINATION);
         }
 
         @Override

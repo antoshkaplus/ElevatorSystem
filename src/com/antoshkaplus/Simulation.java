@@ -17,7 +17,7 @@ public class Simulation extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
         primaryStage.setTitle("Elevator System Visualization");
-        Building building = new Building(6, 4);
+        Building building = new Building(6, 1);
         Population population = new Population(building, 10, 10000);
         Thread thread = new Thread(new Runnable() {
             @Override
@@ -25,6 +25,7 @@ public class Simulation extends Application {
                 population.run();
             }
         });
+        thread.start();
         Visualizer elevatorSystem = new Visualizer(building, population);
         primaryStage.setScene(new Scene(elevatorSystem, 1000, 700));
         primaryStage.show();

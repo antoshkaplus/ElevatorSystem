@@ -64,7 +64,8 @@ class Elevator extends Group {
         double w = sh.getWidth();
         // height per floor
         double h = sh.getHeight()/f;
-        double unit = 0.8 * Math.min(h, w/2);
+        // 4 because we will actually open the door
+        double unit = 0.8 * Math.min(h, w/4);
 
         frame.setWidth(2*unit);
         frame.setHeight(unit);

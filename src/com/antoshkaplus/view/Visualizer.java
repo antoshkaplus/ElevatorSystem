@@ -1,7 +1,9 @@
 package com.antoshkaplus.view;
 
+import com.antoshkaplus.model.Elevator.StateListener;
 import com.antoshkaplus.model.*;
 import javafx.animation.AnimationTimer;
+import javafx.application.Platform;
 import javafx.geometry.Point2D;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
@@ -9,11 +11,15 @@ import javafx.scene.layout.*;
 import javafx.scene.Node;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Created by antoshkaplus on 1/25/15.
  */
-public class Visualizer extends GridPane implements BuildingElevator.ControlsListener, com.antoshkaplus.model.Elevator.StateListener {
+public class Visualizer extends GridPane
+                        implements  BuildingElevator.ControlsListener,
+                                    StateListener,
+                                    Building.Listener {
 
     private static final int numberWidth = 3;
 
@@ -28,13 +34,15 @@ public class Visualizer extends GridPane implements BuildingElevator.ControlsLis
     private Label[] travelingLabels;
     private Shaft[] shafts;
 
-
     public Visualizer(Building building, Population population) {
         super();
         int floorCount = building.getFloorCount();
         int elevatorCount = building.getElevatorCount();
         this.building = building;
         this.population = population;
+
+
+        building.addListener(this);
 
         for (BuildingElevator b : building.getElevators()) {
             b.addStateListener(this);
@@ -147,6 +155,10 @@ public class Visualizer extends GridPane implements BuildingElevator.ControlsLis
                 waitingLabels.get(entry.getKey())[i].setText(padNumberLeft(population.getWaitingUserCount(i, entry.getKey())));
             }
         }
+        Iterator<Integer> it = elevatorViews.keySet().iterator();
+        for (int i = 0; i < building.getElevatorCount(); ++i) {
+            travelingLabels[i].setText(padNumberLeft(population.getTravelingUserCount(it.next())));
+        }
     }
 
     @Override
@@ -157,12 +169,23 @@ public class Visualizer extends GridPane implements BuildingElevator.ControlsLis
         BuildingElevator b = (BuildingElevator)elevator;
         Direction dir = b.getControls().getDirection();
 
-        Arrow a = (Arrow)waitingLabels.get(dir)[b.getFloor()].getGraphic();
-        a.setHighlight(false);
+        Platform.runLater(() -> {
+            Arrow a = (Arrow)waitingLabels.get(dir)[b.getFloor()].getGraphic();
+            a.setHighlight(false);
+        });
+
     }
 
     @Override
     public void onStateFinish(com.antoshkaplus.model.Elevator elevator, com.antoshkaplus.model.Elevator.State state) {
 
+    }
+
+    @Override
+    public void onRequest(Building building, ElevatorRequest request) {
+        Platform.runLater(() -> {
+            Arrow a = (Arrow)waitingLabels.get(request.direction)[request.floor].getGraphic();
+            a.setHighlight(true);
+        });
     }
 }
