@@ -15,7 +15,7 @@ public class ElevatorControls {
     private List<Listener> listeners = new ArrayList<Listener>();
     private Direction direction = Direction.NONE;
     private SortedSet<Integer> highlightedButtons = new TreeSet<Integer>();
-    private boolean functional = false;
+    private boolean functional = true;
 
     void setDirection(Direction direction) {
         this.direction = direction;

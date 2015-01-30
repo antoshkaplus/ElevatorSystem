@@ -1,6 +1,7 @@
 package com.antoshkaplus.model;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -16,7 +17,7 @@ public class Elevator {
 
     private int destinationFloor;
 
-    private List<StateListener> listeners = new ArrayList<StateListener>();
+    private Collection<StateListener> listeners = new ConcurrentLinkedQueue<StateListener>();
     // variables change only inside this thread class
     private double currentFloorLocation = 0;
     private double doorOpenPortion = 0;
@@ -26,7 +27,7 @@ public class Elevator {
     private final double doorSpeed = 0.2;
     // will be used as getter only
     private EnumMap<State, StateInterface> states = new EnumMap<State, StateInterface>(State.class);
-    private State currentState = State.IDLE;
+    private volatile State currentState = State.IDLE;
 
 
     public Elevator() {
@@ -67,7 +68,7 @@ public class Elevator {
     }
     // returns milliseconds
     public long getArrivingTime(int floor) {
-        return 0;
+        return 1;
     }
 
     // should be called after elevator calls controller.onIdle()

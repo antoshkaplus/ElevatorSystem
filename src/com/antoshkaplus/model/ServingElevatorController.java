@@ -14,6 +14,7 @@ public class ServingElevatorController extends ElevatorController implements Bui
 
     public ServingElevatorController(BuildingElevator elevator, Direction direction) {
         super(elevator);
+        elevator.setOnButtonPressListener(this);
         elevator.getControls().setDirection(direction);
         targets = new TreeSet<Integer>(Direction.UP == direction ?
                                         Comparator.naturalOrder() :
@@ -78,4 +79,9 @@ public class ServingElevatorController extends ElevatorController implements Bui
         if (elevator.getDestination() != targets.first()) elevator.setDestination(targets.first());
     }
 
+    @Override
+    protected void notifyOnFinish() {
+        super.notifyOnFinish();
+        elevator.setOnButtonPressListener(null);
+    }
 }

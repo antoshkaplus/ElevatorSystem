@@ -1,6 +1,7 @@
 package com.antoshkaplus.model;
 
 import java.util.*;
+import java.util.concurrent.locks.Lock;
 
 /**
  * Created by antoshkaplus on 1/18/15.
@@ -26,6 +27,8 @@ public class Population implements Elevator.StateListener {
     // measured in milliseconds
     private int requestFrequency;
     private Random random = new Random();
+
+    Object operations = new Object();
 
     public Population(Building building, int count, int requestFrequency) {
         this.building = building;
@@ -58,24 +61,29 @@ public class Population implements Elevator.StateListener {
         while (true) {
             int time = random.nextInt(2 * requestFrequency);
             try {
+                // must be like this for a reason
                 synchronized (this) {
                     wait(time);
                 }
             } catch (InterruptedException e) {
             }
-            if (idleUsersCount == 0) continue;
-            int i = random.nextInt(idleUsersCount);
-            IdleUser u = idleUsers.get(i);
-            Collections.swap(idleUsers, i, idleUsersCount - 1);
-            idleUsers.remove(idleUsersCount - 1);
-            --idleUsersCount;
-            --idleUsersPerFloor[u.floor];
-            // finding target floor
-            int t;
-            while ((t = random.nextInt(building.getFloorCount())) == u.floor) ;
-            Direction d = Direction.get(u.floor, t);
-            waitingUsers.get(u.floor).get(d).add(new WaitingUser(u.id, t));
-            ++waitingUsersCount;
+            IdleUser u;
+            Direction d;
+            synchronized (operations) {
+                if (idleUsersCount == 0) continue;
+                int i = random.nextInt(idleUsersCount);
+                u = idleUsers.get(i);
+                Collections.swap(idleUsers, i, idleUsersCount - 1);
+                idleUsers.remove(idleUsersCount - 1);
+                --idleUsersCount;
+                --idleUsersPerFloor[u.floor];
+                // finding target floor
+                int t;
+                while ((t = random.nextInt(building.getFloorCount())) == u.floor) ;
+                d = Direction.get(u.floor, t);
+                waitingUsers.get(u.floor).get(d).add(new WaitingUser(u.id, t));
+                ++waitingUsersCount;
+            }
             building.onRequest(new ElevatorRequest(u.floor, d));
         }
     }
@@ -110,31 +118,33 @@ public class Population implements Elevator.StateListener {
         if (!bel.getControls().isFunctional()) return;
         if (state != Elevator.State.PASSENGER_TRANSFER) return;
 
-        int floor = bel.getFloor();
-        ArrayList<TravelingUser> ts = travelingUsers.get(bel.getElevatorId());
-        for (int i = 0; i < ts.size();) {
-            if (ts.get(i).targetFloor == floor) {
-                ++idleUsersCount;
-                ++idleUsersPerFloor[floor];
-                idleUsers.add(new IdleUser(ts.get(i).id, floor));
+        synchronized (operations) {
+            int floor = bel.getFloor();
+            ArrayList<TravelingUser> ts = travelingUsers.get(bel.getElevatorId());
+            for (int i = 0; i < ts.size(); ) {
+                if (ts.get(i).targetFloor == floor) {
+                    ++idleUsersCount;
+                    ++idleUsersPerFloor[floor];
+                    idleUsers.add(new IdleUser(ts.get(i).id, floor));
 
-                Collections.swap(ts, i, ts.size() - 1);
-                ts.remove(ts.size() - 1);
-                --travelingUsersCount;
-            } else {
-                ++i;
+                    Collections.swap(ts, i, ts.size() - 1);
+                    ts.remove(ts.size() - 1);
+                    --travelingUsersCount;
+                } else {
+                    ++i;
+                }
             }
-        }
 
-        // getting in some users
-        ArrayList<WaitingUser> ws = waitingUsers.get(floor).get(bel.getControls().getDirection());
-        for (WaitingUser w : ws) {
-            ts.add(new TravelingUser(w.id, w.targetFloor));
-            bel.PressButton(w.targetFloor);
+            // getting in some users
+            ArrayList<WaitingUser> ws = waitingUsers.get(floor).get(bel.getControls().getDirection());
+            for (WaitingUser w : ws) {
+                ts.add(new TravelingUser(w.id, w.targetFloor));
+                bel.PressButton(w.targetFloor);
+            }
+            travelingUsersCount += ws.size();
+            waitingUsersCount -= ws.size();
+            ws.clear();
         }
-        travelingUsersCount += ws.size();
-        waitingUsersCount -= ws.size();
-        ws.clear();
     }
 
     @Override
