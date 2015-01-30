@@ -10,20 +10,17 @@ public class ElevatorSystem implements  ElevatorController.Listener {
     // idle => target => serving => idle
 
     private Random random = new Random();
-    private EnumMap<Direction, List<Integer>> requests;
+    private final EnumMap<Direction, List<Integer>> requests = new EnumMap<>(Direction.class);
 
-    private List<ServingElevatorController> servingElevatorControllers = Collections.synchronizedList(new ArrayList<>());
-    private List<TargetElevatorController> targetElevatorControllers = Collections.synchronizedList(new ArrayList<>());
-    private volatile List<BuildingElevator> idleElevators = Collections.synchronizedList(new ArrayList<>());
-
-    private Object idleLock = new Object();
+    private final List<ServingElevatorController> servingElevatorControllers = Collections.synchronizedList(new ArrayList<>());
+    private final List<TargetElevatorController> targetElevatorControllers = Collections.synchronizedList(new ArrayList<>());
+    private final List<BuildingElevator> idleElevators = Collections.synchronizedList(new ArrayList<>());
 
 //    private List<Listener> listeners = new ArrayList<>();
 
     public ElevatorSystem() {
-        requests = new EnumMap<Direction, List<Integer>>(Direction.class);
-        requests.put(Direction.DOWN, Collections.synchronizedList(new ArrayList<Integer>()));
-        requests.put(Direction.UP, Collections.synchronizedList(new ArrayList<Integer>()));
+        requests.put(Direction.DOWN, Collections.synchronizedList(new ArrayList<>()));
+        requests.put(Direction.UP, Collections.synchronizedList(new ArrayList<>()));
     }
 
     @Override
@@ -34,25 +31,28 @@ public class ElevatorSystem implements  ElevatorController.Listener {
             targetElevatorControllers.remove(controller);
             Direction dir = tcl.getRequest().direction;
             ServingElevatorController c = new ServingElevatorController(controller.getElevator(), dir);
-            List<Integer> rs = requests.get(dir);
-            for (Integer r : rs) {
-                if (c.addRequest(r)) {
-                    rs.remove(r);
-                }
+            // i can lock just direction
+            synchronized (requests) {
+                List<Integer> rs = requests.get(dir);
+                rs.removeIf(c::addRequest);
             }
             c.setListener(this);
             servingElevatorControllers.add(c);
         } else if (controller instanceof ServingElevatorController) {
             servingElevatorControllers.remove(controller);
-            synchronized (idleLock) {
-                idleElevators.add(controller.getElevator());
-                Direction dir = requests.get(Direction.DOWN).size() > requests.get(Direction.UP).size() ?
+            Direction dir;
+            int floor;
+            synchronized (requests) {
+                dir = requests.get(Direction.DOWN).size() > requests.get(Direction.UP).size() ?
                         Direction.DOWN : Direction.UP;
                 List<Integer> rs = requests.get(dir);
-                if (rs.isEmpty()) return;
-                int floor = rs.remove(rs.size() - 1);
-                assignToIdle(new ElevatorRequest(floor, dir));
+                if (rs.isEmpty()) {
+                    idleElevators.add(controller.getElevator());
+                    return;
+                }
+                floor = rs.remove(rs.size() - 1);
             }
+            assignRequest(controller.getElevator(), new ElevatorRequest(floor, dir));
         }
     }
 
@@ -63,8 +63,10 @@ public class ElevatorSystem implements  ElevatorController.Listener {
     public void addRequest(ElevatorRequest request) {
         Direction direction = request.direction;
         int floor = request.floor;
-        if (requests.get(direction).contains(floor)) {
-            return;
+        synchronized (requests) {
+            if (requests.get(direction).contains(floor)) {
+                return;
+            }
         }
         for (ServingElevatorController c : servingElevatorControllers) {
             if (c.getElevator().getControls().getDirection() == request.direction && c.addRequest(floor)) {
@@ -72,23 +74,25 @@ public class ElevatorSystem implements  ElevatorController.Listener {
                 return;
             }
         }
-        synchronized (idleLock) {
+        BuildingElevator elevator;
+        synchronized (idleElevators) {
             if (idleElevators.isEmpty()) {
-                requests.get(direction).add(floor);
+                synchronized (requests) {
+                    requests.get(direction).add(floor);
+                }
                 return;
             }
-            assignToIdle(request);
+            elevator = idleElevators.remove(idleElevators.size() - 1);
         }
+        assignRequest(elevator, request);
     }
 
-    private void assignToIdle(ElevatorRequest request) {
-        int i = idleElevators.size() - 1;
-        BuildingElevator el = idleElevators.get(i);
-        idleElevators.remove(i);
-        TargetElevatorController controller = new TargetElevatorController(el, request);
+    private void assignRequest(BuildingElevator elevator, ElevatorRequest request) {
+        TargetElevatorController controller = new TargetElevatorController(elevator, request);
         controller.setListener(this);
         targetElevatorControllers.add(controller);
     }
+}
 
 
 
@@ -109,4 +113,3 @@ public class ElevatorSystem implements  ElevatorController.Listener {
 //    public interface Listener {
 //        void onRequestSatisfied(ElevatorRequest request);
 //    }
-}
