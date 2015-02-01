@@ -48,6 +48,10 @@ public class Building {
         // cancel highlighted floor panels
     }
 
+    public Iterable<Integer> getElevatorStops(BuildingElevator bel) {
+        return elevatorSystem.getElevatorStops(bel);
+    }
+
     public int getElevatorCount() {
         return elevators.size();
     }

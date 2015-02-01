@@ -28,6 +28,8 @@ public class Population implements Elevator.StateListener {
     private int requestFrequency;
     private Random random = new Random();
 
+    private static final int elevatorCapacity = 10;
+
     Object operations = new Object();
 
     public Population(Building building, int count, int requestFrequency) {
@@ -59,7 +61,7 @@ public class Population implements Elevator.StateListener {
 
     public void run() {
         while (true) {
-            int time = random.nextInt(2 * requestFrequency);
+            int time = random.nextInt(2 * requestFrequency) + 1;
             try {
                 // must be like this for a reason
                 synchronized (this) {
@@ -117,38 +119,50 @@ public class Population implements Elevator.StateListener {
         BuildingElevator bel = (BuildingElevator)elevator;
         if (!bel.getControls().isFunctional()) return;
         if (state != Elevator.State.PASSENGER_TRANSFER) return;
-
-        synchronized (operations) {
-            int floor = bel.getFloor();
-            ArrayList<TravelingUser> ts = travelingUsers.get(bel.getElevatorId());
-            for (int i = 0; i < ts.size(); ) {
-                if (ts.get(i).targetFloor == floor) {
-                    ++idleUsersCount;
-                    ++idleUsersPerFloor[floor];
-                    idleUsers.add(new IdleUser(ts.get(i).id, floor));
-
-                    Collections.swap(ts, i, ts.size() - 1);
-                    ts.remove(ts.size() - 1);
-                    --travelingUsersCount;
-                } else {
-                    ++i;
-                }
-            }
-
-            // getting in some users
-            ArrayList<WaitingUser> ws = waitingUsers.get(floor).get(bel.getControls().getDirection());
-            for (WaitingUser w : ws) {
-                ts.add(new TravelingUser(w.id, w.targetFloor));
-                bel.PressButton(w.targetFloor);
-            }
-            travelingUsersCount += ws.size();
-            waitingUsersCount -= ws.size();
-            ws.clear();
-        }
+        performTransfer(bel);
     }
 
     @Override
-    public void onStateFinish(Elevator elevator, Elevator.State state) {}
+    public void onStateFinish(Elevator elevator, Elevator.State state) {
+        BuildingElevator bel = (BuildingElevator)elevator;
+        if (!bel.getControls().isFunctional()) return;
+        if (state != Elevator.State.PASSENGER_TRANSFER) return;
+        performTransfer(bel);
+    }
+
+    public synchronized void performTransfer(BuildingElevator bel) {
+        int floor = bel.getFloor();
+        ArrayList<TravelingUser> ts = travelingUsers.get(bel.getElevatorId());
+        for (int i = 0; i < ts.size(); ) {
+            if (ts.get(i).targetFloor == floor) {
+                ++idleUsersCount;
+                ++idleUsersPerFloor[floor];
+                idleUsers.add(new IdleUser(ts.get(i).id, floor));
+
+                Collections.swap(ts, i, ts.size() - 1);
+                ts.remove(ts.size() - 1);
+                --travelingUsersCount;
+            } else {
+                ++i;
+            }
+        }
+
+        // getting in some users
+        ArrayList<WaitingUser> ws = waitingUsers.get(floor).get(bel.getControls().getDirection());
+        // how much space left in the elevator
+        int leftSpace = Math.max(elevatorCapacity - ts.size(), 0);
+        int countIn = Math.min(leftSpace, ws.size());
+        for (int i = 0; i < countIn; ++i) {
+            int k = ws.size()-1;
+            WaitingUser w = ws.get(k);
+            ts.add(new TravelingUser(w.id, w.targetFloor));
+            bel.PressButton(w.targetFloor);
+            ws.remove(k);
+        }
+        travelingUsersCount += countIn;
+        waitingUsersCount -= countIn;
+        if (ws.size() > 0) building.onRequest(new ElevatorRequest(floor, bel.getControls().getDirection()));
+    }
 
     class User {
         User(int id) {

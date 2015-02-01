@@ -14,7 +14,7 @@ import javafx.scene.shape.Rectangle;
 /**
  * Created by antoshkaplus on 10/23/14.
  */
-class Elevator extends Group {
+class Elevator extends Parent {
     private Rectangle frame = new Rectangle();
     private Rectangle leftDoor = new Rectangle();
     private Rectangle rightDoor = new Rectangle();
@@ -31,7 +31,7 @@ class Elevator extends Group {
 
         frame.setStroke(Color.BLACK);
         leftDoor.setStroke(Color.CYAN);
-        rightDoor.setStroke(Color.ORANGE);
+        rightDoor.setStroke(Color.CYAN);
 
         getChildren().add(frame);
         getChildren().add(leftDoor);
@@ -58,6 +58,16 @@ class Elevator extends Group {
         updateLocation();
     }
 
+    @Override
+    protected double computePrefHeight(double width) {
+        return 0;
+    }
+
+    @Override
+    protected double computePrefWidth(double height) {
+        return 0;
+    }
+
     public void updateSize() {
         Shaft sh = (Shaft)getParent();
         int f = sh.getFloorCount();
@@ -65,17 +75,16 @@ class Elevator extends Group {
         // height per floor
         double h = sh.getHeight()/f;
         // 4 because we will actually open the door
-        double unit = 0.8 * Math.min(h, w/4);
+        double unit = 0.8 * Math.min(h, w/2);
 
-        frame.setWidth(2*unit);
+        frame.setWidth(unit);
         frame.setHeight(unit);
 
-        leftDoor.setWidth(unit);
+        leftDoor.setWidth(unit/2);
         leftDoor.setHeight(unit);
 
-        rightDoor.setWidth(unit);
+        rightDoor.setWidth(unit/2);
         rightDoor.setHeight(unit);
-        updateLocation();
     }
 
     private void updateLocation() {
@@ -88,10 +97,8 @@ class Elevator extends Group {
 
         frame.setLayoutX((w - frame.getWidth()) / 2);
         leftDoor.setLayoutX(m - leftDoor.getWidth() - openDoorsPortion * leftDoor.getWidth());
-        rightDoor.setLayoutX(m + openDoorsPortion * rightDoor.getWidth() +1);
+        rightDoor.setLayoutX(m + openDoorsPortion * rightDoor.getWidth());
 
-        frame.setLayoutY(y);
-        leftDoor.setLayoutY(y);
-        rightDoor.setLayoutY(y);
+        setLayoutY(y);
     }
 }

@@ -22,9 +22,11 @@ public class Elevator {
     private double currentFloorLocation = 0;
     private double doorOpenPortion = 0;
     // how many floors per second
-    private final double elevatorSpeed = 0.2;
+    private final double elevatorSpeed = 0.5;
     // open portion per second
-    private final double doorSpeed = 0.2;
+    private final double doorSpeed = 0.4;
+    // seconds
+    private final double transferDuration = 0.5;
     // will be used as getter only
     private EnumMap<State, StateInterface> states = new EnumMap<State, StateInterface>(State.class);
     private volatile State currentState = State.IDLE;
@@ -68,7 +70,7 @@ public class Elevator {
     }
     // returns milliseconds
     public long getArrivingTime(int floor) {
-        return 1;
+        return Math.abs(getFloorLocation() - floor) > 0.00001 ? 1 : -1;
     }
 
     // should be called after elevator calls controller.onIdle()
@@ -107,8 +109,6 @@ public class Elevator {
 
     private class PassengerTransfer implements StateInterface {
         private long startPassengerTransferTime;
-        // seconds used
-        private static final int TRANSFER_TIME = 4;
 
         @Override
         public void init() {
@@ -119,7 +119,7 @@ public class Elevator {
         @Override
         public void run() {
             double transferTime = (System.currentTimeMillis() - startPassengerTransferTime) * 0.001;
-            if (transferTime > TRANSFER_TIME) {
+            if (transferTime > transferDuration) {
                 notifyOnStateFinish(State.PASSENGER_TRANSFER);
             }
         }

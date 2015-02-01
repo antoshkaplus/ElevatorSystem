@@ -4,11 +4,17 @@ import com.antoshkaplus.model.Elevator.StateListener;
 import com.antoshkaplus.model.*;
 import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
+import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Point2D;
+import javafx.geometry.Pos;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.layout.*;
 import javafx.scene.Node;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import org.omg.PortableServer.POA;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -33,6 +39,7 @@ public class Visualizer extends GridPane
     private static final Point2D arrowSize = new Point2D(20, 20);
     private Label[] travelingLabels;
     private Shaft[] shafts;
+    private static final Font labelFont = new Font("Courier", 14);
 
     public Visualizer(Building building, Population population) {
         super();
@@ -41,7 +48,6 @@ public class Visualizer extends GridPane
         this.building = building;
         this.population = population;
 
-
         building.addListener(this);
 
         for (BuildingElevator b : building.getElevators()) {
@@ -49,73 +55,42 @@ public class Visualizer extends GridPane
             elevatorViews.put(b.getElevatorId(), new Elevator());
             b.addControlsListener(this);
         }
-
-        // because order of labels in array should be reversed comparing
-        // to adding order we can reverse arrays or compute index of array right or
-        // reverse array of labels afterwards
-
-        waitingLabels = new EnumMap<>(Direction.class);
-        Label[] waiting;
-        waiting = new Label[building.getFloorCount()];
-        waitingLabels.put(Direction.UP, waiting);
-        waiting = new Label[building.getFloorCount()];
-        waitingLabels.put(Direction.DOWN, waiting);
-        for (int i = 0; i < floorCount; ++i) {
-            Label up = waitingLabels.get(Direction.UP)[i] = new Label();
-            up.setGraphic(new Arrow(arrowSize.getX(), arrowSize.getY(), Arrow.Type.UP));
-            Label down = waitingLabels.get(Direction.DOWN)[i] = new Label();
-            down.setGraphic(new Arrow(arrowSize.getX(), arrowSize.getY(), Arrow.Type.DOWN));
-            VBox v = new VBox(up, down);
-            VBox.setVgrow(up, Priority.ALWAYS);
-            VBox.setVgrow(down, Priority.ALWAYS);
-            up.setMaxHeight(Double.MAX_VALUE);
-            down.setMaxHeight(Double.MAX_VALUE);
-            add(v, elevatorCount + 1, floorCount - 1 - i);
-        }
-
-        workingLabels = new Label[floorCount];
-        for (int i = 0; i < floorCount; ++i) {
-            add(workingLabels[i] = new Label(), elevatorCount + 2, floorCount - 1 - i);
-        }
-
-        travelingLabels = new Label[elevatorCount];
-        for (int i = 0; i < elevatorCount; ++i) {
-            add(travelingLabels[i] = new Label(), i+1, floorCount);
-        }
-
         shafts = new Shaft[elevatorCount];
         Iterator<Elevator> els = elevatorViews.values().iterator();
         for (int i = 0; i < elevatorCount; ++i) {
             shafts[i] = new Shaft(floorCount);
             shafts[i].getChildren().add(els.next());
-            add(shafts[i], i+1, 0, 1, floorCount);
+            add(shafts[i], i+1, 0);
         }
 
-        // floor indexes
-        for (int i = 0; i < floorCount; ++i) {
-            Label a = new Label(Integer.toString(i + 1));
-            a.setStyle("-fx-background-color: blue; -fx-alignment: center;");
-            add(a, 0, i);
+        initFloorNumbers();
+        initWaitingLabels();
+        initWorkingLabels();
+
+        travelingLabels = new Label[elevatorCount];
+        for (int i = 0; i < elevatorCount; ++i) {
+            Label a = travelingLabels[i] = new Label();
+            a.setFont(labelFont);
+            a.setPadding(new Insets(5));
+            a.setMaxWidth(Double.MAX_VALUE);
+            a.setAlignment(Pos.CENTER);
+            add(a, i + 1, 1);
         }
 
-        // expanding floors to take all available space
-        for (int i = 0; i < floorCount; ++i) {
-            RowConstraints c = new RowConstraints();
-            c.setVgrow(Priority.ALWAYS);
-            c.setFillHeight(true);
-            getRowConstraints().add(c);
-        }
+        // for the first row
+        RowConstraints rowConstraints = new RowConstraints();
+        rowConstraints.setFillHeight(true);
+        rowConstraints.setVgrow(Priority.ALWAYS);
+        getRowConstraints().add(rowConstraints);
 
         // expanding shafts
         getColumnConstraints().add(new ColumnConstraints());
         for (int i = 0; i < elevatorCount; ++i) {
             ColumnConstraints c = new ColumnConstraints();
             c.setHgrow(Priority.ALWAYS);
+            c.setFillWidth(true);
             getColumnConstraints().add(c);
         }
-
-
-        setGridLinesVisible(true);
 
         new AnimationTimer() {
             @Override
@@ -125,6 +100,79 @@ public class Visualizer extends GridPane
             }
         }.start();
     }
+
+    private void initFloorNumbers() {
+        VBox v = new VBox();
+        // floor indexes
+        int floorCount = building.getFloorCount();
+        for (int i = 0; i < floorCount; ++i) {
+            Label a = new Label(Integer.toString(floorCount - i));
+            a.setPadding(new Insets(5));
+            a.setMaxHeight(Double.MAX_VALUE);
+            v.getChildren().add(a);
+            VBox.setVgrow(a, Priority.ALWAYS);
+        }
+        add(v, 0, 0);
+    }
+
+    private void initWorkingLabels() {
+        int floorCount = building.getFloorCount();
+        int elevatorCount = building.getElevatorCount();
+        VBox v = new VBox();
+        workingLabels = new Label[floorCount];
+        for (int i = 0; i < floorCount; ++i) {
+            Label a = workingLabels[floorCount - 1 - i] = new Label();
+            a.setFont(labelFont);
+            a.setMaxHeight(Double.MAX_VALUE);
+            a.setPadding(new Insets(5));
+            v.getChildren().add(a);
+            VBox.setVgrow(a, Priority.ALWAYS);
+        }
+        v.setMaxHeight(Double.MAX_VALUE);
+        add(v, elevatorCount + 2, 0);
+    }
+
+    private void initWaitingLabels() {
+        // because order of labels in array should be reversed comparing
+        // to adding order we can reverse arrays or compute index of array right or
+        // reverse array of labels afterwards
+        int floorCount = building.getFloorCount();
+        int elevatorCount = building.getElevatorCount();
+        waitingLabels = new EnumMap<>(Direction.class);
+        waitingLabels.put(Direction.UP, new Label[floorCount]);
+        waitingLabels.put(Direction.DOWN, new Label[floorCount]);
+        GridPane g = new GridPane();
+        for (int i = 0; i < floorCount; ++i) {
+            RowConstraints r = new RowConstraints();
+            r.setPercentHeight(100./floorCount);
+            g.getRowConstraints().add(r);
+
+            VBox v = new VBox();
+            v.setMaxHeight(Double.MAX_VALUE);
+            v.setPadding(new Insets(5));
+
+            Label up = waitingLabels.get(Direction.UP)[i] = new Label();
+            up.setFont(labelFont);
+            up.setGraphic(new Arrow(arrowSize.getX(), arrowSize.getY(), Arrow.Type.UP));
+            up.setMaxHeight(Double.MAX_VALUE);
+            if (i != floorCount-1) {
+                v.getChildren().add(up);
+                VBox.setVgrow(up, Priority.ALWAYS);
+            }
+            Label down = waitingLabels.get(Direction.DOWN)[i] = new Label();
+            down.setFont(labelFont);
+            down.setGraphic(new Arrow(arrowSize.getX(), arrowSize.getY(), Arrow.Type.DOWN));
+            down.setMaxHeight(Double.MAX_VALUE);
+            if (i != 0) {
+                v.getChildren().add(down);
+                VBox.setVgrow(down, Priority.ALWAYS);
+            }
+            g.add(v, 0, floorCount - 1 - i);
+        }
+        add(g, elevatorCount + 1, 0);
+    }
+
+
 
     @Override
     public void onDirectionChange(BuildingElevator elevator) {
@@ -141,11 +189,17 @@ public class Visualizer extends GridPane
     }
 
     private void updateElevators() {
+        int floorCount = building.getFloorCount();
+        int i = 0;
         for (BuildingElevator b : building.getElevators()) {
             Elevator v = elevatorViews.get(b.getElevatorId());
             v.setFloor(b.getFloorLocation());
             v.setOpenDoorsPortion(b.getDoorOpenPortion());
+            shafts[i].setHighlight(false);
+            shafts[i].setHighlight(building.getElevatorStops(b), true);
+            ++i;
         }
+
     }
 
     private void updatePopulation() {

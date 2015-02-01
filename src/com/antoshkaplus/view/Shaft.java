@@ -1,9 +1,11 @@
 package com.antoshkaplus.view;
 
+import com.antoshkaplus.model.BuildingElevator;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
 
 import java.io.Console;
 
@@ -12,6 +14,10 @@ import java.io.Console;
  */
 public class Shaft extends StackPane {
     private int floorCount;
+    private Region[] floors;
+
+    private Background highlightBg = new Background(new BackgroundFill(Color.LIGHTGREEN.darker(), null, null));
+    private Background normalBg = new Background(new BackgroundFill(Color.LIGHTGREEN, null, null));
 
     public Shaft(int floorCount) {
         super();
@@ -23,22 +29,40 @@ public class Shaft extends StackPane {
         });
 
         //setPadding(new Insets(0, 0, 0, 0));
-        VBox floors = new VBox();
-        getChildren().add(floors);
+        VBox v = new VBox();
+        getChildren().add(v);
+        floors = new Region[floorCount];
         for (int i = 0; i  < floorCount; ++i) {
-
-            Region r = new Region();
-
-//            r.setOnMouseClicked(e -> {
-//                System.out.println(r.getBoundsInLocal());
-//                System.out.println(r.getBoundsInParent());
-//            });
-
-            String s = "-fx-background-color: " + (i % 2 == 0 ? "green" : "red") + ";";
-            r.setStyle(s);
-            floors.getChildren().add(r);
-            floors.setVgrow(r, Priority.ALWAYS);
+            Region r = floors[floorCount - i - 1] = new Region();
+            v.getChildren().add(r);
+            v.setVgrow(r, Priority.ALWAYS);
         }
+        for (int i = 0; i < floorCount; ++i) {
+            setHighlight(i, false);
+        }
+    }
+
+    // cast for all elements
+    public void setHighlight(boolean highlight) {
+        Background bg = getBackground(highlight);
+        for (Region r : floors) {
+            r.setBackground(bg);
+        }
+    }
+
+    public void setHighlight(Iterable<Integer> floors, boolean highlight) {
+        Background bg = getBackground(highlight);
+        for (Integer f : floors) {
+            this.floors[f].setBackground(bg);
+        }
+    }
+
+    public void setHighlight(int floor, boolean highlight) {
+        floors[floor].setBackground(getBackground(highlight));
+    }
+
+    private Background getBackground(boolean h) {
+        return h ? highlightBg : normalBg;
     }
 
     public int getFloorCount() {

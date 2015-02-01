@@ -79,6 +79,10 @@ public class ServingElevatorController extends ElevatorController implements Bui
         if (elevator.getDestination() != targets.first()) elevator.setDestination(targets.first());
     }
 
+    public Iterable<Integer> getTargets() {
+        return targets;
+    }
+
     @Override
     protected void notifyOnFinish() {
         super.notifyOnFinish();

@@ -18,7 +18,7 @@ public class Arrow extends Polygon {
         super(width/2, 0, width, height, 0, height);
         if (type == Type.DOWN) setRotate(180);
         setStroke(Color.BLACK);
-        setFill(Color.BURLYWOOD);
+        setFill(normalColor);
     }
 
     public void setHighlight(boolean highlight) {

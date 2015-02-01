@@ -1,6 +1,9 @@
 package com.antoshkaplus.model;
 
+import com.sun.tools.javac.util.*;
+
 import java.util.*;
+import java.util.List;
 
 /**
  * Created by antoshkaplus on 10/16/14.
@@ -50,7 +53,19 @@ public class ElevatorSystem implements  ElevatorController.Listener {
                     idleElevators.add(controller.getElevator());
                     return;
                 }
-                floor = rs.remove(rs.size() - 1);
+                // if dir = up find lowest floor
+                // else take highest
+                int removeIndex = 0;
+                if (dir == Direction.UP) {
+                    for (int i = 0; i < rs.size(); ++i) {
+                        if (rs.get(i) < rs.get(removeIndex)) removeIndex = i;
+                    }
+                } else {
+                    for (int i = 1; i < rs.size(); ++i) {
+                        if (rs.get(i) > rs.get(removeIndex)) removeIndex = i;
+                    }
+                }
+                floor = rs.remove(removeIndex);
             }
             assignRequest(controller.getElevator(), new ElevatorRequest(floor, dir));
         }
@@ -91,6 +106,27 @@ public class ElevatorSystem implements  ElevatorController.Listener {
         TargetElevatorController controller = new TargetElevatorController(elevator, request);
         controller.setListener(this);
         targetElevatorControllers.add(controller);
+    }
+
+    public Iterable<Integer> getElevatorStops(BuildingElevator bel) {
+        // sometimes may not find elevator due to rearrangements
+        while (true) {
+            if (idleElevators.contains(bel)) {
+                return new ArrayList<>();
+            }
+            for (TargetElevatorController c : targetElevatorControllers) {
+                if (c.elevator == bel) {
+                    List a = new ArrayList<>();
+                    a.add(c.getRequest().floor);
+                    return a;
+                }
+            }
+            for (ServingElevatorController c : servingElevatorControllers) {
+                if (c.elevator == bel) {
+                    return c.getTargets();
+                }
+            }
+        }
     }
 }
 
